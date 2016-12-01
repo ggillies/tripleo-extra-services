@@ -1,0 +1,9 @@
+resource_registry:
+  OS::TripleO::Services:SkydiveAgent: skydive-agent.yaml
+  OS::TripleO::Services:SkydiveAnalyzer: skydive-analyzer.yaml
+
+parameter_defaults:
+  SkydiveAnalyzerCount: 1
+  EnablePackageInstall: true
+  ServiceNetMap:
+    SkydiveAnalyzerNetwork: internal_api

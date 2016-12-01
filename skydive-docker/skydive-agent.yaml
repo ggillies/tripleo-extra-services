@@ -1,0 +1,68 @@
+heat_template_version: 2016-04-08
+
+description: >
+  This role will install the skydive-agent using the official docker images
+  and configure them to talk to the skydive-analyzer instance
+
+parameters:
+  ServiceNetMap:
+    default: {}
+    description: Mapping of service_name -> network name. Typically set
+                 via parameter_defaults in the resource registry.  This
+                 mapping overrides those in ServiceNetMapDefaults.
+    type: json
+  DefaultPasswords:
+    default: {}
+    type: json
+  EndpointMap:
+    default: {}
+    description: Mapping of service endpoint -> protocol. Typically set
+                 via parameter_defaults in the resource registry.
+    type: json
+  SkydiveAnalyzerHost:
+    default: '127.0.0.1'
+    description: The host that runs the skydive analyzer that we will
+                 connect the agent to
+    type: string
+
+outputs:
+  role_data:
+    description: skydive-agent
+    value:
+      service_name: skydive_agent
+      config_settings:
+        docker::use_upstream_package_source: false
+        docker::package_name: 'docker'
+        docker::selinux_enabled: '"true"'
+#        skydive_agent::analyzer_host: { get_param: SkydiveAnalyzerHost }
+#        skydive_agent::analyzer_host: {get_param: [ServiceNetMap, SkyDiveNetwork]}
+        tripleo.docker_skydive_agent.firewall_rules:
+          '8081 skydive-agent':
+            dport: 8081
+            proto: 'tcp'
+
+      step_config: |
+        if hiera('step') >= 1 {
+          vcsrepo{'/etc/puppet/modules/docker':
+            ensure   => present,
+            provider => git,
+            source   => "https://github.com/garethr/garethr-docker",
+          }
+        }
+        if hiera('step') >= 2 {
+          class {'docker':}
+          $skydive_analyzer_hosts = hiera('skydive_analyzer_node_ips')
+          $skydive_analyzer_host = $skydive_analyzer_hosts[0]
+          docker::run{'skydive-agent':
+            image            => 'skydive/skydive',
+            command          => 'agent --listen=0.0.0.0:8081',
+            ports            => ['8081:8081'],
+            net              => 'host',
+            volumes          => ['/var/run/docker.sock:/var/run/docker.sock', '/var/run/netns:/host/run'],
+            env              => ["SKYDIVE_AGENT_ANALYZERS=${skydive_analyzer_host}:8082", 'SKYDIVE_USERNAME=admin', 'SKYDIVE_PASSWORD=password'],
+            restart_service  => true,
+            privileged       => true,
+            pull_on_start    => true,
+            extra_parameters => ['--pid=host'],
+          }
+        }

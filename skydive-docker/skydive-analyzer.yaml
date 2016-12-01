@@ -1,0 +1,78 @@
+heat_template_version: 2016-04-08
+
+description: >
+  This role will install the skydive-analyzer using the official docker images
+  and lso configure elasticsearch as a data store
+
+parameters:
+  ServiceNetMap:
+    default: {}
+    description: Mapping of service_name -> network name. Typically set
+                 via parameter_defaults in the resource registry.  This
+                 mapping overrides those in ServiceNetMapDefaults.
+    type: json
+  DefaultPasswords:
+    default: {}
+    type: json
+  EndpointMap:
+    default: {}
+    description: Mapping of service endpoint -> protocol. Typically set
+                 via parameter_defaults in the resource registry.
+    type: json
+
+outputs:
+  role_data:
+    description: skydive-analyzer
+    value:
+      service_name: skydive_analyzer
+      config_settings:
+        docker::use_upstream_package_source: false
+        docker::package_name: 'docker'
+        docker::selinux_enabled: '"true"'
+        tripleo.docker_skydive_analyzer.firewall_rules:
+          '9200 elasticsearch':
+            dport: 9200
+            proto: 'tcp'
+          '9300 elasticsearch':
+            dport: 9300
+            proto: 'tcp'
+          '2379 skydive-analyzer':
+            dport: 2379
+            proto: 'tcp'
+          '8082 skydive-analyzer':
+            dport: 8082
+            proto: 'tcp'
+          '8082 skydive-analyzer udp':
+            dport: 8082
+            proto: 'udp'
+      step_config: |
+        if hiera('step') >= 1 {
+          vcsrepo{'/etc/puppet/modules/docker':
+            ensure   => present,
+            provider => git,
+            source   => "https://github.com/garethr/garethr-docker",
+          }
+        }
+        if hiera('step') >= 2 {
+          class {'docker':}
+          sysctl::value{'vm.max_map_count':
+            value => '262144',
+          }
+          docker::run{'elasticsearch':
+            image            => 'elasticsearch:2',
+            ports            => ['9200:9200', '9300:9300'],
+            volumes          => ['/opt/esdata:/usr/share/elasticsearch/data'],
+            restart_service  => true,
+            pull_on_start    => true,
+          }
+          docker::run{'skydive-analyzer':
+            image            => 'skydive/skydive',
+            command          => 'analyzer --listen=0.0.0.0:8082',
+            ports            => ['2379:2379', '8082:8082', '8082:8082/udp'],
+            links            => ['elasticsearch'],
+            env              => ['SKYDIVE_STORAGE_ELASTICSEARCH_HOST=elasticsearch:9200', 'SKYDIVE_ANALYZER_STORAGE=elasticsearch', 'SKYDIVE_GRAPH_BACKEND=elasticsearch'],
+            after            => ['elasticsearch'],
+            restart_service  => true,
+            pull_on_start    => true,
+          }
+        }
