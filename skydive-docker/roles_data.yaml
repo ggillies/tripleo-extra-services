@@ -95,7 +95,7 @@
     - OS::TripleO::Services::SensuClient
     - OS::TripleO::Services::FluentdClient
     - OS::TripleO::Services::VipHosts
-    - OS::TripleO::Services:SkydiveAgent
+    - OS::TripleO::Services::SkydiveAgent
 
 - name: Compute
   CountDefault: 1
@@ -122,7 +122,7 @@
     - OS::TripleO::Services::SensuClient
     - OS::TripleO::Services::FluentdClient
     - OS::TripleO::Services::VipHosts
-    - OS::TripleO::Services:SkydiveAgent
+    - OS::TripleO::Services::SkydiveAgent
 
 - name: BlockStorage
   ServicesDefault:
@@ -179,4 +179,4 @@
     - OS::TripleO::Services::SensuClient
     - OS::TripleO::Services::FluentdClient
     - OS::TripleO::Services::VipHosts
-    - OS::TripleO::Services:SkydiveAnalyzer
+    - OS::TripleO::Services::SkydiveAnalyzer
