@@ -58,7 +58,7 @@ outputs:
             command          => 'agent --listen=0.0.0.0:8081',
             ports            => ['8081:8081'],
             net              => 'host',
-            volumes          => ['/var/run/docker.sock:/var/run/docker.sock', '/var/run/netns:/host/run'],
+            volumes          => ['/var/run/docker.sock:/var/run/docker.sock', '/var/run/netns:/host/run', '/var/run/openvswitch/db.sock:/var/run/openvswitch/db.sock'],
             env              => ["SKYDIVE_AGENT_ANALYZERS=${skydive_analyzer_host}:8082", 'SKYDIVE_USERNAME=admin', 'SKYDIVE_PASSWORD=password'],
             restart_service  => true,
             privileged       => true,
